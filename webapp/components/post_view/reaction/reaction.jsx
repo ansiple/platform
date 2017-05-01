@@ -1,17 +1,14 @@
-import PropTypes from 'prop-types';
-
 // Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import React from 'react';
+import PropTypes from 'prop-types';
 import {OverlayTrigger, Tooltip} from 'react-bootstrap';
 import {FormattedMessage} from 'react-intl';
 
-import EmojiStore from 'stores/emoji_store.jsx';
-
 import * as Utils from 'utils/utils.jsx';
 
-export default class Reaction extends React.Component {
+export default class Reaction extends React.PureComponent {
     static propTypes = {
         post: PropTypes.object.isRequired,
         currentUserId: PropTypes.string.isRequired,
@@ -20,9 +17,10 @@ export default class Reaction extends React.Component {
         emojis: PropTypes.object.isRequired,
         profiles: PropTypes.array.isRequired,
         otherUsers: PropTypes.number.isRequired,
+        emojiImageUrl: PropTypes.string.isRequired,
         actions: PropTypes.shape({
             addReaction: PropTypes.func.isRequired,
-            getMissingProfiles: PropTypes.func.isRequired,
+            getMissingProfilesByIds: PropTypes.func.isRequired,
             removeReaction: PropTypes.func.isRequired
         })
     }
@@ -36,12 +34,12 @@ export default class Reaction extends React.Component {
 
     addReaction(e) {
         e.preventDefault();
-        this.props.actions.addReaction(this.props.post.channel_id, this.props.post.id, this.props.emojiName);
+        this.props.actions.addReaction(this.props.post.id, this.props.emojiName);
     }
 
     removeReaction(e) {
         e.preventDefault();
-        this.props.actions.removeReaction(this.props.post.channel_id, this.props.post.id, this.props.emojiName);
+        this.props.actions.removeReaction(this.props.post.id, this.props.emojiName);
     }
 
     render() {
@@ -185,7 +183,7 @@ export default class Reaction extends React.Component {
                         {clickTooltip}
                     </Tooltip>
                 }
-                onEnter={this.props.actions.getMissingProfiles}
+                onEnter={this.props.actions.getMissingProfilesByIds}
             >
                 <div
                     className={className}
@@ -193,7 +191,7 @@ export default class Reaction extends React.Component {
                 >
                     <span
                         className='post-reaction__emoji emoticon'
-                        style={{backgroundImage: 'url(' + EmojiStore.getEmojiImageUrl(this.props.emojis.get(this.props.emojiName)) + ')'}}
+                        style={{backgroundImage: 'url(' + this.props.emojiImageUrl + ')'}}
                     />
                     <span className='post-reaction__count'>
                         {this.props.reactions.length}

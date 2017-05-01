@@ -26,6 +26,7 @@ const dispatch = store.dispatch;
 const getState = store.getState;
 import {getProfilesByIds} from 'mattermost-redux/actions/users';
 import {getMyChannelMember} from 'mattermost-redux/actions/channels';
+import {PostTypes} from 'mattermost-redux/action_types';
 
 export function handleNewPost(post, msg) {
     let websocketMessageProps = {};
@@ -73,6 +74,17 @@ function completePostReceive(post, websocketMessageProps) {
                     websocketMessageProps
                 });
 
+                dispatch({
+                    type: PostTypes.RECEIVED_POSTS,
+                    data,
+                    channelId: post.channel_id
+                });
+
+                dispatch({
+                    type: PostTypes.RECEIVED_POST,
+                    data: post
+                });
+
                 sendDesktopNotification(post, websocketMessageProps);
 
                 loadProfilesForPosts(data.posts);
@@ -89,6 +101,11 @@ function completePostReceive(post, websocketMessageProps) {
         type: ActionTypes.RECEIVED_POST,
         post,
         websocketMessageProps
+    });
+
+    dispatch({
+        type: PostTypes.RECEIVED_POST,
+        data: post
     });
 
     sendDesktopNotification(post, websocketMessageProps);
@@ -402,6 +419,11 @@ export function createPost(post, doLoadPost, success, error) {
             AppDispatcher.handleServerAction({
                 type: ActionTypes.RECEIVED_POST,
                 post: data
+            });
+
+            dispatch({
+                type: PostTypes.RECEIVED_POST,
+                data
             });
 
             if (success) {

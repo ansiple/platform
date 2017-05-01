@@ -5,9 +5,9 @@ import PropTypes from 'prop-types';
 
 import React from 'react';
 
-import Reaction from './reaction_container.jsx';
+import Reaction from 'components/post_view/reaction';
 
-export default class ReactionListView extends React.Component {
+export default class ReactionListView extends React.PureComponent {
     static propTypes = {
         post: PropTypes.object.isRequired,
         reactions: PropTypes.arrayOf(PropTypes.object),

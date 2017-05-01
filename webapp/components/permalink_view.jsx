@@ -6,7 +6,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import ChannelHeader from 'components/channel_header.jsx';
-import PostFocusViewController from 'components/post_view/post_focus_view_controller.jsx';
 
 import ChannelStore from 'stores/channel_store.jsx';
 import TeamStore from 'stores/team_store.jsx';
@@ -71,7 +70,6 @@ export default class PermalinkView extends React.Component {
                 <ChannelHeader
                     channelId={this.state.channelId}
                 />
-                <PostFocusViewController/>
                 <div
                     id='archive-link-home'
                 >

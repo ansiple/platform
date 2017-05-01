@@ -1,78 +1,81 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import UserStore from 'stores/user_store.jsx';
 import * as Utils from 'utils/utils.jsx';
-import * as GlobalActions from 'actions/global_actions.jsx';
 import * as PostUtils from 'utils/post_utils.jsx';
 import Constants from 'utils/constants.jsx';
-import CommentedOnFilesMessageContainer from './commented_on_files_message_container.jsx';
+import CommentedOnFilesMessageContainer from 'components/post_view/commented_on_files_message_container';
 import FileAttachmentListContainer from 'components/file_attachment_list_container.jsx';
-import PostBodyAdditionalContent from './post_body_additional_content.jsx';
-import PostMessageContainer from './post_message_container.jsx';
-import PendingPostOptions from './pending_post_options.jsx';
-import ReactionListContainer from './reaction_list_container.jsx';
+import PostBodyAdditionalContent from 'components/post_view/post_body_additional_content.jsx';
+import PostMessageContainer from 'components/post_view/post_message_view';
+import ReactionListContainer from 'components/post_view/reaction_list';
 
 import {FormattedMessage} from 'react-intl';
 
-import loadingGif from 'images/load.gif';
-
+import React from 'react';
 import PropTypes from 'prop-types';
 
-import React from 'react';
+export default class PostBody extends React.PureComponent {
+    static propTypes = {
 
-export default class PostBody extends React.Component {
+        /**
+         * The post to render the body of
+         */
+        post: PropTypes.object.isRequired,
+
+        /**
+         * The poster of the parent post, if exists
+         */
+        parentPostUser: PropTypes.object,
+
+        /**
+         * The function called when the comment icon is clicked
+         */
+        handleCommentClick: PropTypes.func.isRequired,
+
+        /**
+         * Set to render post body compactly
+         */
+        compactDisplay: PropTypes.bool,
+
+        /**
+         * Set to collapse image and video previews
+         */
+        previewCollapsed: PropTypes.string,
+
+        /**
+         * The post count used for selenium tests
+         */
+        lastPostCount: PropTypes.number,
+
+        actions: PropTypes.shape({
+
+            /**
+             * The function to delete the post
+             */
+            removePost: PropTypes.func.isRequired
+        }).isRequired
+    }
+
     constructor(props) {
         super(props);
 
         this.removePost = this.removePost.bind(this);
     }
 
-    shouldComponentUpdate(nextProps) {
-        if (nextProps.isCommentMention !== this.props.isCommentMention) {
-            return true;
-        }
-
-        if (!Utils.areObjectsEqual(nextProps.post, this.props.post)) {
-            return true;
-        }
-
-        if (!Utils.areObjectsEqual(nextProps.parentPost, this.props.parentPost)) {
-            return true;
-        }
-
-        if (nextProps.compactDisplay !== this.props.compactDisplay) {
-            return true;
-        }
-
-        if (nextProps.previewCollapsed !== this.props.previewCollapsed) {
-            return true;
-        }
-
-        if (nextProps.handleCommentClick.toString() !== this.props.handleCommentClick.toString()) {
-            return true;
-        }
-
-        if (nextProps.lastPostCount !== this.props.lastPostCount) {
-            return true;
-        }
-
-        return false;
-    }
-
     removePost() {
-        GlobalActions.emitRemovePost(this.props.post);
+        this.props.actions.removePost(this.props.post);
     }
 
     render() {
         const post = this.props.post;
-        const parentPost = this.props.parentPost;
+        const parentPost = post.commentedOnPost;
 
         let comment = '';
         let postClass = '';
 
-        if (parentPost) {
-            const profile = UserStore.getProfile(parentPost.user_id);
+        if (parentPost && this.props.parentPostUser) {
+            const profile = this.props.parentPostUser;
 
             let apostrophe = '';
             let name = '...';
@@ -106,7 +109,6 @@ export default class PostBody extends React.Component {
             } else if (parentPost.file_ids && parentPost.file_ids.length > 0) {
                 message = (
                     <CommentedOnFilesMessageContainer
-                        parentPostChannelId={parentPost.channel_id}
                         parentPostId={parentPost.id}
                     />
                 );
@@ -134,20 +136,6 @@ export default class PostBody extends React.Component {
             );
         }
 
-        let loading;
-        if (post.state === Constants.POST_FAILED) {
-            postClass += ' post--fail';
-            loading = <PendingPostOptions post={this.props.post}/>;
-        } else if (post.state === Constants.POST_LOADING) {
-            postClass += ' post-waiting';
-            loading = (
-                <img
-                    className='post-loading-gif pull-right'
-                    src={loadingGif}
-                />
-            );
-        }
-
         if (PostUtils.isEdited(this.props.post)) {
             postClass += ' post--edited';
         }
@@ -168,7 +156,6 @@ export default class PostBody extends React.Component {
                 id={`${post.id}_message`}
                 className={postClass}
             >
-                {loading}
                 <PostMessageContainer
                     lastPostCount={this.props.lastPostCount}
                     post={this.props.post}
@@ -184,15 +171,13 @@ export default class PostBody extends React.Component {
                 <PostBodyAdditionalContent
                     post={this.props.post}
                     message={messageWrapper}
-                    compactDisplay={this.props.compactDisplay}
                     previewCollapsed={this.props.previewCollapsed}
-                    childComponentDidUpdateFunction={this.props.childComponentDidUpdateFunction}
                 />
             );
         }
 
         let mentionHighlightClass = '';
-        if (this.props.isCommentMention) {
+        if (post.isCommentMention) {
             mentionHighlightClass = 'mention-comment';
         }
 
@@ -208,16 +193,3 @@ export default class PostBody extends React.Component {
         );
     }
 }
-
-PostBody.propTypes = {
-    post: PropTypes.object.isRequired,
-    currentUser: PropTypes.object.isRequired,
-    parentPost: PropTypes.object,
-    retryPost: PropTypes.func,
-    lastPostCount: PropTypes.number,
-    handleCommentClick: PropTypes.func.isRequired,
-    compactDisplay: PropTypes.bool,
-    previewCollapsed: PropTypes.string,
-    isCommentMention: PropTypes.bool,
-    childComponentDidUpdateFunction: PropTypes.func
-};

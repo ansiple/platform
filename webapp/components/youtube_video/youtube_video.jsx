@@ -1,17 +1,22 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import ChannelStore from 'stores/channel_store.jsx';
 import WebClient from 'client/web_client.jsx';
 import * as Utils from 'utils/utils.jsx';
 
 const ytRegex = /(?:http|https):\/\/(?:www\.|m\.)?(?:(?:youtube\.com\/(?:(?:v\/)|(?:(?:watch|embed\/watch)(?:\/|.*v=))|(?:embed\/)|(?:user\/[^/]+\/u\/[0-9]\/)))|(?:youtu\.be\/))([^#&?]*)/;
 
+import React from 'react';
 import PropTypes from 'prop-types';
 
-import React from 'react';
+export default class YoutubeVideo extends React.PureComponent {
+    static propTypes = {
+        channelId: PropTypes.string.isRequired,
+        currentChannelId: PropTypes.string.isRequired,
+        link: PropTypes.string.isRequired,
+        show: PropTypes.bool.isRequired
+    }
 
-export default class YoutubeVideo extends React.Component {
     constructor(props) {
         super(props);
 
@@ -22,7 +27,6 @@ export default class YoutubeVideo extends React.Component {
 
         this.play = this.play.bind(this);
         this.stop = this.stop.bind(this);
-        this.stopOnChannelChange = this.stopOnChannelChange.bind(this);
 
         this.state = {
             loaded: false,
@@ -49,6 +53,10 @@ export default class YoutubeVideo extends React.Component {
         }
 
         if (props.show === false) {
+            this.stop();
+        }
+
+        if (props.channelId !== props.currentChannelId) {
             this.stop();
         }
 
@@ -138,20 +146,10 @@ export default class YoutubeVideo extends React.Component {
 
     play() {
         this.setState({playing: true});
-
-        if (ChannelStore.getCurrentId() === this.props.channelId) {
-            ChannelStore.addChangeListener(this.stopOnChannelChange);
-        }
     }
 
     stop() {
         this.setState({playing: false});
-    }
-
-    stopOnChannelChange() {
-        if (ChannelStore.getCurrentId() !== this.props.channelId) {
-            this.stop();
-        }
     }
 
     render() {
@@ -233,9 +231,3 @@ export default class YoutubeVideo extends React.Component {
         return link.trim().match(ytRegex);
     }
 }
-
-YoutubeVideo.propTypes = {
-    channelId: PropTypes.string.isRequired,
-    link: PropTypes.string.isRequired,
-    show: PropTypes.bool.isRequired
-};

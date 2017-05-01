@@ -1,55 +1,102 @@
-import PropTypes from 'prop-types';
-
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import React, {Component} from 'react';
-
+import PostHeader from 'components/post_view/post_header.jsx';
+import PostBody from 'components/post_view/post_body';
 import ProfilePicture from 'components/profile_picture.jsx';
 
+import Constants from 'utils/constants.jsx';
+const ActionTypes = Constants.ActionTypes;
+
+import * as Utils from 'utils/utils.jsx';
+import * as PostUtils from 'utils/post_utils.jsx';
 import AppDispatcher from 'dispatcher/app_dispatcher.jsx';
 
-import Constants, {ActionTypes} from 'utils/constants.jsx';
-import * as PostUtils from 'utils/post_utils.jsx';
-import * as Utils from 'utils/utils.jsx';
+import React from 'react';
+import PropTypes from 'prop-types';
 
-import PostBody from './post_body.jsx';
-import PostHeader from './post_header.jsx';
-
-export default class Post extends Component {
+export default class Post extends React.PureComponent {
     static propTypes = {
+
+        /**
+         * The post to render
+         */
         post: PropTypes.object.isRequired,
-        parentPost: PropTypes.object,
+
+        /**
+         * The user who created the post
+         */
         user: PropTypes.object,
-        sameUser: PropTypes.bool,
-        sameRoot: PropTypes.bool,
-        hideProfilePic: PropTypes.bool,
-        lastPostCount: PropTypes.number,
-        isLastComment: PropTypes.bool,
-        shouldHighlight: PropTypes.bool,
-        displayNameType: PropTypes.string,
-        currentUser: PropTypes.object.isRequired,
-        center: PropTypes.bool,
-        compactDisplay: PropTypes.bool,
-        previewCollapsed: PropTypes.string,
-        commentCount: PropTypes.number,
-        isCommentMention: PropTypes.bool,
-        useMilitaryTime: PropTypes.bool.isRequired,
-        isFlagged: PropTypes.bool,
+
+        /**
+         * The status of the poster
+         */
         status: PropTypes.string,
+
+        /**
+         * The logged in user
+         */
+        currentUser: PropTypes.object.isRequired,
+
+        /**
+         * Set to highlight the post background
+         */
+        shouldHighlight: PropTypes.bool,
+
+        /**
+         * How to display the poster's name
+         */
+        displayNameType: PropTypes.string,
+
+        /**
+         * Set to center the post
+         */
+        center: PropTypes.bool,
+
+        /**
+         * Set to render post compactly
+         */
+        compactDisplay: PropTypes.bool,
+
+        /**
+         * Set to collapse image and video previews
+         */
+        previewCollapsed: PropTypes.string,
+
+        /**
+         * Set to use 24 hour clock when displaying time
+         */
+        useMilitaryTime: PropTypes.bool.isRequired,
+
+        /**
+         * Set to mark the post as flagged
+         */
+        isFlagged: PropTypes.bool,
+
+        /**
+         * Set to mark the poster as in a webrtc call
+         */
         isBusy: PropTypes.bool,
-        childComponentDidUpdateFunction: PropTypes.func
-    };
+
+        /**
+         * The post count used for selenium tests
+         */
+        lastPostCount: PropTypes.number
+    }
 
     constructor(props) {
         super(props);
+
+        this.handleCommentClick = this.handleCommentClick.bind(this);
+        this.handleDropdownOpened = this.handleDropdownOpened.bind(this);
+        this.forceUpdateInfo = this.forceUpdateInfo.bind(this);
 
         this.state = {
             dropdownOpened: false
         };
     }
 
-    handleCommentClick = (e) => {
+    handleCommentClick(e) {
         e.preventDefault();
 
         AppDispatcher.handleServerAction({
@@ -63,87 +110,15 @@ export default class Post extends Component {
         });
     }
 
-    handleDropdownOpened = (opened) => {
+    handleDropdownOpened(opened) {
         this.setState({
             dropdownOpened: opened
         });
     }
 
-    forceUpdateInfo = () => {
+    forceUpdateInfo() {
         this.refs.info.forceUpdate();
         this.refs.header.forceUpdate();
-    }
-
-    shouldComponentUpdate(nextProps, nextState) {
-        if (!Utils.areObjectsEqual(nextProps.post, this.props.post)) {
-            return true;
-        }
-
-        if (nextProps.sameRoot !== this.props.sameRoot) {
-            return true;
-        }
-
-        if (nextProps.sameUser !== this.props.sameUser) {
-            return true;
-        }
-
-        if (nextProps.displayNameType !== this.props.displayNameType) {
-            return true;
-        }
-
-        if (nextProps.commentCount !== this.props.commentCount) {
-            return true;
-        }
-
-        if (nextProps.isCommentMention !== this.props.isCommentMention) {
-            return true;
-        }
-
-        if (nextProps.shouldHighlight !== this.props.shouldHighlight) {
-            return true;
-        }
-
-        if (nextProps.center !== this.props.center) {
-            return true;
-        }
-
-        if (nextProps.compactDisplay !== this.props.compactDisplay) {
-            return true;
-        }
-
-        if (nextProps.previewCollapsed !== this.props.previewCollapsed) {
-            return true;
-        }
-
-        if (nextProps.useMilitaryTime !== this.props.useMilitaryTime) {
-            return true;
-        }
-
-        if (nextProps.isFlagged !== this.props.isFlagged) {
-            return true;
-        }
-
-        if (nextProps.status !== this.props.status) {
-            return true;
-        }
-
-        if (!Utils.areObjectsEqual(nextProps.user, this.props.user)) {
-            return true;
-        }
-
-        if (nextState.dropdownOpened !== this.state.dropdownOpened) {
-            return true;
-        }
-
-        if (nextProps.isBusy !== this.props.isBusy) {
-            return true;
-        }
-
-        if (nextProps.lastPostCount !== this.props.lastPostCount) {
-            return true;
-        }
-
-        return false;
     }
 
     getClassName = (post, isSystemMessage, fromWebhook) => {
@@ -157,11 +132,11 @@ export default class Post extends Component {
             className += ' post--highlight';
         }
 
-        let rootUser;
-        if (this.props.sameRoot) {
-            rootUser = 'same--root';
-        } else {
+        let rootUser = '';
+        if (post.isFirstReply) {
             rootUser = 'other--root';
+        } else {
+            rootUser = 'same--root';
         }
 
         let currentUserCss = '';
@@ -170,14 +145,14 @@ export default class Post extends Component {
         }
 
         let sameUserClass = '';
-        if (this.props.sameUser) {
+        if (post.consecutivePostByUser) {
             sameUserClass = 'same--user';
         }
 
         let postType = '';
         if (post.root_id && post.root_id.length > 0) {
             postType = 'post--comment';
-        } else if (this.props.commentCount > 0) {
+        } else if (post.replyCount > 0) {
             postType = 'post--root';
             sameUserClass = '';
             rootUser = '';
@@ -208,7 +183,6 @@ export default class Post extends Component {
 
     render() {
         const post = this.props.post;
-        const parentPost = this.props.parentPost;
         const mattermostLogo = Constants.MATTERMOST_ICON_SVG;
 
         const isSystemMessage = PostUtils.isSystemMessage(post);
@@ -241,7 +215,7 @@ export default class Post extends Component {
                     src={PostUtils.getProfilePicSrcForPost(post, timestamp)}
                 />
             );
-        } else if (isSystemMessage) {
+        } else if (PostUtils.isSystemMessage(post)) {
             profilePic = (
                 <span
                     className='icon'
@@ -256,7 +230,7 @@ export default class Post extends Component {
         }
 
         if (this.props.compactDisplay) {
-            if (post.props && post.props.from_webhook) {
+            if (fromWebhook) {
                 profilePic = (
                     <ProfilePicture
                         src=''
@@ -293,13 +267,8 @@ export default class Post extends Component {
                             <PostHeader
                                 ref='header'
                                 post={post}
-                                sameRoot={this.props.sameRoot}
-                                lastPostCount={this.props.lastPostCount}
-                                commentCount={this.props.commentCount}
                                 handleCommentClick={this.handleCommentClick}
                                 handleDropdownOpened={this.handleDropdownOpened}
-                                isLastComment={this.props.isLastComment}
-                                sameUser={this.props.sameUser}
                                 user={this.props.user}
                                 currentUser={this.props.currentUser}
                                 compactDisplay={this.props.compactDisplay}
@@ -308,18 +277,14 @@ export default class Post extends Component {
                                 isFlagged={this.props.isFlagged}
                                 status={this.props.status}
                                 isBusy={this.props.isBusy}
+                                lastPostCount={this.props.lastPostCount}
                             />
                             <PostBody
                                 post={post}
-                                currentUser={this.props.currentUser}
-                                sameRoot={this.props.sameRoot}
-                                lastPostCount={this.props.lastPostCount}
-                                parentPost={parentPost}
                                 handleCommentClick={this.handleCommentClick}
                                 compactDisplay={this.props.compactDisplay}
                                 previewCollapsed={this.props.previewCollapsed}
-                                isCommentMention={this.props.isCommentMention}
-                                childComponentDidUpdateFunction={this.props.childComponentDidUpdateFunction}
+                                lastPostCount={this.props.lastPostCount}
                             />
                         </div>
                     </div>

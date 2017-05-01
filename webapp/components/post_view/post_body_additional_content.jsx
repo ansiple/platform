@@ -2,18 +2,39 @@
 // See License.txt for license information.
 
 import PostAttachmentList from './post_attachment_list.jsx';
-import PostAttachmentOpenGraph from './post_attachment_opengraph.jsx';
+import PostAttachmentOpenGraph from './post_attachment_opengraph';
 import PostImage from './post_image.jsx';
-import YoutubeVideo from 'components/youtube_video.jsx';
+import YoutubeVideo from 'components/youtube_video';
 
 import Constants from 'utils/constants.jsx';
 import * as Utils from 'utils/utils.jsx';
 
+import React from 'react';
 import PropTypes from 'prop-types';
 
-import React from 'react';
+export default class PostBodyAdditionalContent extends React.PureComponent {
+    static propTypes = {
 
-export default class PostBodyAdditionalContent extends React.Component {
+        /**
+         * The post to render the content of
+         */
+        post: PropTypes.object.isRequired,
+
+        /**
+         * The post's message
+         */
+        message: PropTypes.element.isRequired,
+
+        /**
+         * Set to collapse image and video previews
+         */
+        previewCollapsed: PropTypes.string
+    }
+
+    static defaultProps = {
+        previewCollapsed: ''
+    }
+
     constructor(props) {
         super(props);
 
@@ -37,22 +58,6 @@ export default class PostBodyAdditionalContent extends React.Component {
             link: Utils.extractFirstLink(nextProps.post.message),
             linkLoadError: false
         });
-    }
-
-    shouldComponentUpdate(nextProps, nextState) {
-        if (!Utils.areObjectsEqual(nextProps.post, this.props.post)) {
-            return true;
-        }
-        if (!Utils.areObjectsEqual(nextProps.message, this.props.message)) {
-            return true;
-        }
-        if (nextState.embedVisible !== this.state.embedVisible) {
-            return true;
-        }
-        if (nextState.linkLoadError !== this.state.linkLoadError) {
-            return true;
-        }
-        return false;
     }
 
     toggleEmbedVisibility() {
@@ -144,7 +149,6 @@ export default class PostBodyAdditionalContent extends React.Component {
             return (
                 <PostAttachmentOpenGraph
                     link={link}
-                    childComponentDidUpdateFunction={this.props.childComponentDidUpdateFunction}
                     previewCollapsed={this.props.previewCollapsed}
                 />
             );
@@ -213,14 +217,3 @@ export default class PostBodyAdditionalContent extends React.Component {
         return this.props.message;
     }
 }
-
-PostBodyAdditionalContent.defaultProps = {
-    previewCollapsed: 'false'
-};
-PostBodyAdditionalContent.propTypes = {
-    post: PropTypes.object.isRequired,
-    message: PropTypes.element.isRequired,
-    compactDisplay: PropTypes.bool,
-    previewCollapsed: PropTypes.string,
-    childComponentDidUpdateFunction: PropTypes.func
-};

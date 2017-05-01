@@ -2,18 +2,31 @@
 // See License.txt for license information.
 
 import UserProfile from 'components/user_profile.jsx';
-import PostInfo from './post_info.jsx';
+import PostInfo from './post_info';
 import {FormattedMessage} from 'react-intl';
 
 import * as PostUtils from 'utils/post_utils.jsx';
 
 import Constants from 'utils/constants.jsx';
 
+import React from 'react';
 import PropTypes from 'prop-types';
 
-import React from 'react';
+export default class PostHeader extends React.PureComponent {
+    static propTypes = {
+        post: PropTypes.object.isRequired,
+        user: PropTypes.object,
+        handleCommentClick: PropTypes.func.isRequired,
+        handleDropdownOpened: PropTypes.func.isRequired,
+        compactDisplay: PropTypes.bool,
+        displayNameType: PropTypes.string,
+        useMilitaryTime: PropTypes.bool.isRequired,
+        isFlagged: PropTypes.bool.isRequired,
+        status: PropTypes.string,
+        isBusy: PropTypes.bool,
+        lastPostCount: PropTypes.number
+    }
 
-export default class PostHeader extends React.Component {
     constructor(props) {
         super(props);
         this.state = {};
@@ -81,43 +94,15 @@ export default class PostHeader extends React.Component {
                 <li className='col'>
                     <PostInfo
                         post={post}
-                        lastPostCount={this.props.lastPostCount}
-                        commentCount={this.props.commentCount}
                         handleCommentClick={this.props.handleCommentClick}
                         handleDropdownOpened={this.props.handleDropdownOpened}
-                        isLastComment={this.props.isLastComment}
-                        sameUser={this.props.sameUser}
-                        currentUser={this.props.currentUser}
                         compactDisplay={this.props.compactDisplay}
                         useMilitaryTime={this.props.useMilitaryTime}
                         isFlagged={this.props.isFlagged}
+                        lastPostCount={this.props.lastPostCount}
                     />
                 </li>
             </ul>
         );
     }
 }
-
-PostHeader.defaultProps = {
-    post: null,
-    commentCount: 0,
-    isLastComment: false,
-    sameUser: false
-};
-PostHeader.propTypes = {
-    post: PropTypes.object.isRequired,
-    user: PropTypes.object,
-    currentUser: PropTypes.object.isRequired,
-    lastPostCount: PropTypes.number,
-    commentCount: PropTypes.number.isRequired,
-    isLastComment: PropTypes.bool.isRequired,
-    handleCommentClick: PropTypes.func.isRequired,
-    handleDropdownOpened: PropTypes.func.isRequired,
-    sameUser: PropTypes.bool.isRequired,
-    compactDisplay: PropTypes.bool,
-    displayNameType: PropTypes.string,
-    useMilitaryTime: PropTypes.bool.isRequired,
-    isFlagged: PropTypes.bool.isRequired,
-    status: PropTypes.string,
-    isBusy: PropTypes.bool
-};

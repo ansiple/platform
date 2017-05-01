@@ -3,12 +3,11 @@
 
 import UserProfile from './user_profile.jsx';
 import FileAttachmentListContainer from './file_attachment_list_container.jsx';
-import PendingPostOptions from 'components/post_view/components/pending_post_options.jsx';
-import PostMessageContainer from 'components/post_view/components/post_message_container.jsx';
+import PostMessageContainer from 'components/post_view/post_message_view';
 import ProfilePicture from 'components/profile_picture.jsx';
-import ReactionListContainer from 'components/post_view/components/reaction_list_container.jsx';
+import ReactionListContainer from 'components/post_view/reaction_list';
 import RhsDropdown from 'components/rhs_dropdown.jsx';
-import PostFlagIcon from 'components/common/post_flag_icon.jsx';
+import PostFlagIcon from 'components/post_view/post_flag_icon.jsx';
 
 import * as GlobalActions from 'actions/global_actions.jsx';
 import {flagPost, unflagPost, pinPost, unpinPost, addReaction} from 'actions/post_actions.jsx';
@@ -456,10 +455,7 @@ export default class RhsComment extends React.Component {
         let loading;
         let postClass = '';
 
-        if (post.state === Constants.POST_FAILED) {
-            postClass += ' post-fail';
-            loading = <PendingPostOptions post={this.props.post}/>;
-        } else if (post.state === Constants.POST_LOADING) {
+        if (post.state === Constants.POST_LOADING) {
             postClass += ' post-waiting';
             loading = (
                 <img

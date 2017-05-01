@@ -1,16 +1,38 @@
-import PropTypes from 'prop-types';
-
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
-import OpenGraphStore from 'stores/opengraph_store.jsx';
 import * as Utils from 'utils/utils.jsx';
 import * as CommonUtils from 'utils/commons.jsx';
-import {requestOpenGraphMetadata} from 'actions/global_actions.jsx';
 
-export default class PostAttachmentOpenGraph extends React.Component {
+export default class PostAttachmentOpenGraph extends React.PureComponent {
+    static propTypes = {
+
+        /**
+         * The link to display the open graph data for
+         */
+        link: PropTypes.string.isRequired,
+
+        /**
+         * The open graph data to render
+         */
+        openGraphData: PropTypes.object.isRequired,
+
+        /**
+         * Set to collapse the preview
+         */
+        previewCollapsed: PropTypes.string,
+        actions: PropTypes.shape({
+
+            /**
+             * The function to get open graph data for a link
+             */
+            getOpenGraphMetadata: PropTypes.func.isRequired
+        }).isRequired
+    }
+
     constructor(props) {
         super(props);
         this.largeImageMinWidth = 150;
@@ -29,7 +51,6 @@ export default class PostAttachmentOpenGraph extends React.Component {
         this.smallImageElement = null;
 
         this.fetchData = this.fetchData.bind(this);
-        this.onOpenGraphMetadataChange = this.onOpenGraphMetadataChange.bind(this);
         this.toggleImageVisibility = this.toggleImageVisibility.bind(this);
         this.onImageLoad = this.onImageLoad.bind(this);
         this.onImageError = this.onImageError.bind(this);
@@ -44,7 +65,6 @@ export default class PostAttachmentOpenGraph extends React.Component {
 
     componentWillMount() {
         this.setState({
-            data: {},
             imageLoaded: this.IMAGE_LOADED.LOADING,
             imageVisible: this.props.previewCollapsed.startsWith('false'),
             hasLargeImage: false
@@ -53,61 +73,23 @@ export default class PostAttachmentOpenGraph extends React.Component {
     }
 
     componentWillReceiveProps(nextProps) {
-        if (!Utils.areObjectsEqual(nextProps.link, this.props.link)) {
+        if (nextProps.link !== this.props.link) {
             this.fetchData(nextProps.link);
         }
     }
 
-    shouldComponentUpdate(nextProps, nextState) {
-        if (nextState.imageVisible !== this.state.imageVisible) {
-            return true;
-        }
-        if (nextState.hasLargeImage !== this.state.hasLargeImage) {
-            return true;
-        }
-        if (nextState.imageLoaded !== this.state.imageLoaded) {
-            return true;
-        }
-        if (!Utils.areObjectsEqual(nextState.data, this.state.data)) {
-            return true;
-        }
-        return false;
-    }
-
-    componentDidMount() {
-        OpenGraphStore.addUrlDataChangeListener(this.onOpenGraphMetadataChange);
-    }
-
-    componentDidUpdate() {
-        if (this.props.childComponentDidUpdateFunction) {
-            this.props.childComponentDidUpdateFunction();
-        }
-    }
-
-    componentWillUnmount() {
-        OpenGraphStore.removeUrlDataChangeListener(this.onOpenGraphMetadataChange);
-    }
-
-    onOpenGraphMetadataChange(url) {
-        if (url === this.props.link) {
-            this.fetchData(url);
-        }
-    }
-
     fetchData(url) {
-        const data = OpenGraphStore.getOgInfo(url);
-        this.setState({data, imageLoaded: this.IMAGE_LOADED.LOADING});
-        if (Utils.isEmptyObject(data)) {
-            requestOpenGraphMetadata(url);
+        if (!this.props.openGraphData) {
+            this.props.actions.getOpenGraphMetadata(url);
         }
     }
 
     getBestImageUrl() {
-        if (Utils.isEmptyObject(this.state.data.images)) {
+        if (Utils.isEmptyObject(this.props.openGraphData.images)) {
             return null;
         }
 
-        const bestImage = CommonUtils.getNearestPoint(this.imageDimentions, this.state.data.images, 'width', 'height');
+        const bestImage = CommonUtils.getNearestPoint(this.imageDimentions, this.props.openGraphData.images, 'width', 'height');
         return bestImage.secure_url || bestImage.url;
     }
 
@@ -217,11 +199,11 @@ export default class PostAttachmentOpenGraph extends React.Component {
     }
 
     render() {
-        if (Utils.isEmptyObject(this.state.data) || Utils.isEmptyObject(this.state.data.description)) {
+        if (!this.props.openGraphData || Utils.isEmptyObject(this.props.openGraphData.description)) {
             return null;
         }
 
-        const data = this.state.data;
+        const data = this.props.openGraphData;
         const imageUrl = this.getBestImageUrl();
 
         if (imageUrl) {
@@ -275,13 +257,3 @@ export default class PostAttachmentOpenGraph extends React.Component {
         );
     }
 }
-
-PostAttachmentOpenGraph.defaultProps = {
-    previewCollapsed: 'false'
-};
-
-PostAttachmentOpenGraph.propTypes = {
-    link: PropTypes.string.isRequired,
-    childComponentDidUpdateFunction: PropTypes.func,
-    previewCollapsed: PropTypes.string
-};

@@ -1,27 +1,22 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import $ from 'jquery';
 import * as TextFormatting from 'utils/text_formatting.jsx';
+import {localizeMessage} from 'utils/utils.jsx';
 
-import {intlShape, injectIntl, defineMessages} from 'react-intl';
-
-const holders = defineMessages({
-    collapse: {
-        id: 'post_attachment.collapse',
-        defaultMessage: 'Show less...'
-    },
-    more: {
-        id: 'post_attachment.more',
-        defaultMessage: 'Show more...'
-    }
-});
-
+import $ from 'jquery';
+import React from 'react';
 import PropTypes from 'prop-types';
 
-import React from 'react';
+export default class PostAttachment extends React.PureComponent {
+    static propTypes = {
 
-class PostAttachment extends React.Component {
+        /**
+         * The attachment to render
+         */
+        attachment: PropTypes.object.isRequired
+    }
+
     constructor(props) {
         super(props);
 
@@ -46,7 +41,7 @@ class PostAttachment extends React.Component {
     getInitState() {
         const shouldCollapse = this.shouldCollapse();
         const text = TextFormatting.formatText(this.props.attachment.text || '');
-        const uncollapsedText = text + (shouldCollapse ? `<div><a class="attachment-link-more" href="#">${this.props.intl.formatMessage(holders.collapse)}</a></div>` : '');
+        const uncollapsedText = text + (shouldCollapse ? `<div><a class="attachment-link-more" href="#">${localizeMessage('post_attachment.collapse', 'Show less...')}</a></div>` : '');
         const collapsedText = shouldCollapse ? this.getCollapsedText() : text;
 
         return {
@@ -80,7 +75,7 @@ class PostAttachment extends React.Component {
             text = text.substr(0, 700);
         }
 
-        return TextFormatting.formatText(text) + `<div><a class="attachment-link-more" href="#">${this.props.intl.formatMessage(holders.more)}</a></div>`;
+        return TextFormatting.formatText(text) + `<div><a class="attachment-link-more" href="#">${localizeMessage('post_attachment.more', 'Show more...')}</a></div>`;
     }
 
     getFieldsTable() {
@@ -314,10 +309,3 @@ class PostAttachment extends React.Component {
         );
     }
 }
-
-PostAttachment.propTypes = {
-    intl: intlShape.isRequired,
-    attachment: PropTypes.object.isRequired
-};
-
-export default injectIntl(PostAttachment);

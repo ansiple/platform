@@ -1,11 +1,16 @@
-import PropTypes from 'prop-types';
-
 // Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
+
 import React from 'react';
+import PropTypes from 'prop-types';
 import {FormattedMessage} from 'react-intl';
 
-export default class NewMessageIndicator extends React.Component {
+export default class NewMessageIndicator extends React.PureComponent {
+    static propTypes = {
+        onClick: PropTypes.func.isRequired,
+        newMessages: PropTypes.number
+    }
+
     constructor(props) {
         super(props);
         this.state = {
@@ -13,6 +18,7 @@ export default class NewMessageIndicator extends React.Component {
             rendered: false
         };
     }
+
     componentWillReceiveProps(nextProps) {
         if (nextProps.newMessages > 0) {
             this.setState({rendered: true}, () => {
@@ -22,6 +28,7 @@ export default class NewMessageIndicator extends React.Component {
             this.setState({visible: false});
         }
     }
+
     render() {
         let className = 'new-messages__button';
         if (this.state.visible > 0) {
@@ -56,11 +63,7 @@ export default class NewMessageIndicator extends React.Component {
         this.setState({rendered: this.state.visible});
     }
 }
+
 NewMessageIndicator.defaultProps = {
     newMessages: 0
-};
-
-NewMessageIndicator.propTypes = {
-    onClick: PropTypes.func.isRequired,
-    newMessages: PropTypes.number
 };

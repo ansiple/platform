@@ -5,8 +5,8 @@ import CreateComment from './create_comment.jsx';
 import RhsHeaderPost from './rhs_header_post.jsx';
 import RootPost from './rhs_root_post.jsx';
 import Comment from './rhs_comment.jsx';
-import FloatingTimestamp from './post_view/components/floating_timestamp.jsx';
-import DateSeparator from './post_view/components/date_separator.jsx';
+import FloatingTimestamp from './post_view/floating_timestamp.jsx';
+import DateSeparator from './post_view/date_separator.jsx';
 
 import PostStore from 'stores/post_store.jsx';
 import UserStore from 'stores/user_store.jsx';

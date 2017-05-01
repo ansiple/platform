@@ -3,16 +3,15 @@
 
 import {FormattedDate} from 'react-intl';
 
+import React from 'react';
 import PropTypes from 'prop-types';
 
-import React from 'react';
-import PureRenderMixin from 'react-addons-pure-render-mixin';
-
-export default class FloatingTimestamp extends React.Component {
-    constructor(props) {
-        super(props);
-
-        this.shouldComponentUpdate = PureRenderMixin.shouldComponentUpdate.bind(this);
+export default class FloatingTimestamp extends React.PureComponent {
+    static propTypes = {
+        isScrolling: PropTypes.bool.isRequired,
+        isMobile: PropTypes.bool,
+        createAt: PropTypes.number,
+        isRhsPost: PropTypes.bool
     }
 
     render() {
@@ -52,10 +51,3 @@ export default class FloatingTimestamp extends React.Component {
         );
     }
 }
-
-FloatingTimestamp.propTypes = {
-    isScrolling: PropTypes.bool.isRequired,
-    isMobile: PropTypes.bool,
-    createAt: PropTypes.number,
-    isRhsPost: PropTypes.bool
-};

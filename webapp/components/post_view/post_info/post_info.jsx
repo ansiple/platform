@@ -4,12 +4,10 @@
 import $ from 'jquery';
 import ReactDOM from 'react-dom';
 
-import PostTime from './post_time.jsx';
-import PostFlagIcon from 'components/common/post_flag_icon.jsx';
+import PostTime from 'components/post_view/post_time.jsx';
+import PostFlagIcon from 'components/post_view/post_flag_icon.jsx';
 
 import * as GlobalActions from 'actions/global_actions.jsx';
-import * as PostActions from 'actions/post_actions.jsx';
-import CommentIcon from 'components/common/comment_icon.jsx';
 
 import * as Utils from 'utils/utils.jsx';
 import * as PostUtils from 'utils/post_utils.jsx';
@@ -18,12 +16,30 @@ import DelayedAction from 'utils/delayed_action.jsx';
 import {Overlay} from 'react-bootstrap';
 import EmojiPicker from 'components/emoji_picker/emoji_picker.jsx';
 
-import PropTypes from 'prop-types';
-
 import React from 'react';
+import PropTypes from 'prop-types';
 import {FormattedMessage} from 'react-intl';
 
-export default class PostInfo extends React.Component {
+export default class PostInfo extends React.PureComponent {
+    static propTypes = {
+        post: PropTypes.object.isRequired,
+        handleCommentClick: PropTypes.func.isRequired,
+        handleDropdownOpened: PropTypes.func.isRequired,
+        compactDisplay: PropTypes.bool,
+        useMilitaryTime: PropTypes.bool.isRequired,
+        isFlagged: PropTypes.bool,
+        canDelete: PropTypes.bool,
+        lastPostCount: PropTypes.number,
+        actions: PropTypes.shape({
+            removePost: PropTypes.func.isRequired,
+            flagPost: PropTypes.func.isRequired,
+            unflagPost: PropTypes.func.isRequired,
+            pinPost: PropTypes.func.isRequired,
+            unpinPost: PropTypes.func.isRequired,
+            addReaction: PropTypes.func.isRequired
+        }).isRequired
+    }
+
     constructor(props) {
         super(props);
 
@@ -37,13 +53,12 @@ export default class PostInfo extends React.Component {
         this.reactEmojiClick = this.reactEmojiClick.bind(this);
         this.emojiPickerClick = this.emojiPickerClick.bind(this);
 
-        this.canEdit = false;
-        this.canDelete = false;
         this.editDisableAction = new DelayedAction(this.handleEditDisable);
 
         this.state = {
             showEmojiPicker: false,
-            reactionPickerOffset: 21
+            reactionPickerOffset: 21,
+            canEdit: PostUtils.canEditPost(props.post, this.editDisableAction)
         };
     }
 
@@ -59,7 +74,7 @@ export default class PostInfo extends React.Component {
     }
 
     handleEditDisable() {
-        this.canEdit = false;
+        this.setState({canEdit: false});
     }
 
     componentDidMount() {
@@ -78,7 +93,7 @@ export default class PostInfo extends React.Component {
         var dropdownContents = [];
         var dataComments = 0;
         if (type === 'Post') {
-            dataComments = this.props.commentCount;
+            dataComments = post.replyCount;
         }
 
         if (!isSystemMessage) {
@@ -194,7 +209,7 @@ export default class PostInfo extends React.Component {
             }
         }
 
-        if (this.canDelete) {
+        if (this.props.canDelete) {
             dropdownContents.push(
                 <li
                     key='deletePost'
@@ -217,12 +232,12 @@ export default class PostInfo extends React.Component {
             );
         }
 
-        if (this.canEdit) {
+        if (this.state.canEdit) {
             dropdownContents.push(
                 <li
                     key='editPost'
                     role='presentation'
-                    className={this.canEdit ? 'dropdown-submenu' : 'dropdown-submenu hide'}
+                    className={'dropdown-submenu'}
                 >
                     <a
                         href='#'
@@ -284,7 +299,7 @@ export default class PostInfo extends React.Component {
     }
 
     removePost() {
-        GlobalActions.emitRemovePost(this.props.post);
+        this.props.actions.removePost(this.props.post);
     }
 
     createRemovePostButton() {
@@ -302,41 +317,38 @@ export default class PostInfo extends React.Component {
 
     pinPost(e) {
         e.preventDefault();
-        PostActions.pinPost(this.props.post.channel_id, this.props.post.id);
+        this.props.actions.pinPost(this.props.post.channel_id, this.props.post.id);
     }
 
     unpinPost(e) {
         e.preventDefault();
-        PostActions.unpinPost(this.props.post.channel_id, this.props.post.id);
+        this.props.actions.unpinPost(this.props.post.channel_id, this.props.post.id);
     }
 
     flagPost(e) {
         e.preventDefault();
-        PostActions.flagPost(this.props.post.id);
+        this.props.actions.flagPost(this.props.post.id);
     }
 
     unflagPost(e) {
         e.preventDefault();
-        PostActions.unflagPost(this.props.post.id);
+        this.props.actions.unflagPost(this.props.post.id);
     }
 
     reactEmojiClick(emoji) {
         const pickerOffset = 21;
         this.setState({showEmojiPicker: false, reactionPickerOffset: pickerOffset});
         const emojiName = emoji.name || emoji.aliases[0];
-        PostActions.addReaction(this.props.post.channel_id, this.props.post.id, emojiName);
+        this.props.actions.addReaction(this.props.post.id, emojiName);
     }
 
     render() {
-        var post = this.props.post;
+        const post = this.props.post;
 
         let idCount = -1;
         if (this.props.lastPostCount >= 0 && this.props.lastPostCount < Constants.TEST_ID_COUNT) {
             idCount = this.props.lastPostCount;
         }
-
-        this.canDelete = PostUtils.canDeletePost(post);
-        this.canEdit = PostUtils.canEditPost(post, this.editDisableAction);
 
         const isEphemeral = Utils.isPostEphemeral(post);
         const isPending = post.state === Constants.POST_FAILED || post.state === Constants.POST_LOADING;
@@ -345,13 +357,30 @@ export default class PostInfo extends React.Component {
         let comments = null;
         let react = null;
         if (!isEphemeral && !isPending && !isSystemMessage) {
+            let showCommentClass;
+            let commentCountText;
+            if (post.replyCount >= 1) {
+                showCommentClass = ' icon--show';
+                commentCountText = post.replyCount;
+            } else {
+                showCommentClass = '';
+                commentCountText = '';
+            }
+
             comments = (
-                <CommentIcon
-                    idPrefix={'commentIcon'}
-                    idCount={idCount}
-                    handleCommentClick={this.props.handleCommentClick}
-                    commentCount={this.props.commentCount}
-                />
+                <a
+                    href='#'
+                    className={'comment-icon__container' + showCommentClass}
+                    onClick={this.props.handleCommentClick}
+                >
+                    <span
+                        className='comment-icon'
+                        dangerouslySetInnerHTML={{__html: Constants.REPLY_ICON}}
+                    />
+                    <span className='comment-count'>
+                        {commentCountText}
+                    </span>
+                </a>
             );
 
             if (Utils.isFeatureEnabled(Constants.PRE_RELEASE_FEATURES.EMOJI_PICKER_PREVIEW)) {
@@ -428,7 +457,7 @@ export default class PostInfo extends React.Component {
                 <li className='col'>
                     <PostTime
                         eventTime={post.create_at}
-                        sameUser={this.props.sameUser}
+                        sameUser={post.consecutivePostByUser}
                         compactDisplay={this.props.compactDisplay}
                         useMilitaryTime={this.props.useMilitaryTime}
                         postId={post.id}
@@ -448,23 +477,3 @@ export default class PostInfo extends React.Component {
         );
     }
 }
-
-PostInfo.defaultProps = {
-    post: null,
-    commentCount: 0,
-    isLastComment: false,
-    sameUser: false
-};
-PostInfo.propTypes = {
-    post: PropTypes.object.isRequired,
-    lastPostCount: PropTypes.number,
-    commentCount: PropTypes.number.isRequired,
-    isLastComment: PropTypes.bool.isRequired,
-    handleCommentClick: PropTypes.func.isRequired,
-    handleDropdownOpened: PropTypes.func.isRequired,
-    sameUser: PropTypes.bool.isRequired,
-    currentUser: PropTypes.object.isRequired,
-    compactDisplay: PropTypes.bool,
-    useMilitaryTime: PropTypes.bool.isRequired,
-    isFlagged: PropTypes.bool
-};
