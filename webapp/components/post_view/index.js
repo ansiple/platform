@@ -4,23 +4,32 @@
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
 
-import {makeGetPostsInChannel} from 'mattermost-redux/selectors/entities/posts';
+import {makeGetPostsInChannel, makeGetPostsAroundPost} from 'mattermost-redux/selectors/entities/posts';
 import {get} from 'mattermost-redux/selectors/entities/preferences';
 import {getChannel, getMyChannelMember} from 'mattermost-redux/selectors/entities/channels';
 import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
-import {getPosts} from 'mattermost-redux/actions/posts';
+import {getPosts, getPostsBefore, getPostsAfter, getPostThread} from 'mattermost-redux/actions/posts';
 import {Preferences} from 'utils/constants.jsx';
 
 import PostList from './post_list.jsx';
 
 function makeMapStateToProps() {
     const getPostsInChannel = makeGetPostsInChannel();
+    const getPostsAroundPost = makeGetPostsAroundPost();
 
     return function mapStateToProps(state, ownProps) {
+        let posts;
+        if (ownProps.focusedPostId) {
+            posts = getPostsAroundPost(state, ownProps.focusedPostId, ownProps.channelId);
+        } else {
+            posts = getPostsInChannel(state, ownProps.channelId);
+        }
+
         return {
             channel: getChannel(state, ownProps.channelId),
             channelMember: getMyChannelMember(state, ownProps.channelId),
-            posts: getPostsInChannel(state, ownProps.channelId),
+            posts,
+            focusedPostId: ownProps.focusedPostId,
             currentUserId: getCurrentUserId(state),
             fullWidth: get(state, Preferences.CATEGORY_DISPLAY_SETTINGS, Preferences.CHANNEL_DISPLAY_MODE, Preferences.CHANNEL_DISPLAY_MODE_DEFAULT) === Preferences.CHANNEL_DISPLAY_MODE_FULL_SCREEN
         };
@@ -30,7 +39,10 @@ function makeMapStateToProps() {
 function mapDispatchToProps(dispatch) {
     return {
         actions: bindActionCreators({
-            getPosts
+            getPosts,
+            getPostsBefore,
+            getPostsAfter,
+            getPostThread
         }, dispatch)
     };
 }

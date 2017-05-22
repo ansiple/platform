@@ -39,11 +39,6 @@ export default class Post extends React.PureComponent {
         currentUser: PropTypes.object.isRequired,
 
         /**
-         * Set to highlight the post background
-         */
-        shouldHighlight: PropTypes.bool,
-
-        /**
          * How to display the poster's name
          */
         displayNameType: PropTypes.string,
@@ -128,7 +123,7 @@ export default class Post extends React.PureComponent {
             className += ' post--hide-controls';
         }
 
-        if (this.props.shouldHighlight) {
+        if (post.highlight) {
             className += ' post--highlight';
         }
 

@@ -12,6 +12,8 @@ import {createChannelIntroMessage} from 'utils/channel_intro_messages.jsx';
 import {FormattedDate, FormattedMessage} from 'react-intl';
 
 import React from 'react';
+import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 
 export default class PostList extends React.PureComponent {
     static propTypes = {
@@ -19,34 +21,54 @@ export default class PostList extends React.PureComponent {
         /**
          * Array of posts in the channel, ordered from oldest to newest
          */
-        posts: React.PropTypes.array,
+        posts: PropTypes.array,
 
         /**
          * The channel the posts are in
          */
-        channel: React.PropTypes.object,
+        channel: PropTypes.object,
 
         /**
          * The channel membership for the current user
          */
-        channelMember: React.PropTypes.object,
+        channelMember: PropTypes.object,
 
         /**
          * The user id of the logged in user
          */
-        currentUserId: React.PropTypes.string,
+        currentUserId: PropTypes.string,
+
+        /**
+         * Set to focus this post
+         */
+        focusedPostId: PropTypes.array,
 
         /**
          * Whether to display the channel intro at full width
          */
-        fullWidth: React.PropTypes.bool,
+        fullWidth: PropTypes.bool,
 
-        actions: React.PropTypes.shape({
+        actions: PropTypes.shape({
 
             /**
-             * Function to get more posts in the channel
+             * Function to get posts in the channel
              */
-            getPosts: React.PropTypes.func.isRequired
+            getPosts: PropTypes.func.isRequired,
+
+            /**
+             * Function to get posts in the channel older than the focused post
+             */
+            getPostsBefore: PropTypes.func.isRequired,
+
+            /**
+             * Function to get posts in the channel newer than the focused post
+             */
+            getPostsAfter: PropTypes.func.isRequired,
+
+            /**
+             * Function to get the post thread for the focused post
+             */
+            getPostThread: PropTypes.func.isRequired
         }).isRequired
     }
 
@@ -55,10 +77,12 @@ export default class PostList extends React.PureComponent {
 
         this.createPosts = this.createPosts.bind(this);
         this.handleScroll = this.handleScroll.bind(this);
+        this.loadPosts = this.loadPosts.bind(this);
 
         this.page = 0;
         this.preLoadListHeight = 0;
         this.previousScrollTop = 0;
+        this.hasScrolledToFocusedPost = false;
 
         this.state = {
             loadingMorePosts: false,
@@ -67,23 +91,24 @@ export default class PostList extends React.PureComponent {
     }
 
     componentDidMount() {
-        this.props.actions.getPosts(this.props.channel.id).then((posts) => {
-            if (posts && posts.order.length < Constants.POST_CHUNK_SIZE) {
-                this.setState({atEnd: true});
-            }
-        });
+        this.loadPosts(this.props.channel.id, this.props.focusedPostId);
     }
 
     componentWillReceiveProps(nextProps) {
-        if (this.props.channel.id !== nextProps.channel.id) {
+        // Focusing on a new post so load posts around it
+        if (nextProps.focusedPostId && this.props.focusedPostId !== nextProps.focusedPostId) {
+            this.page = 0;
+            this.hasScrolledToFocusedPost = false;
+            this.setState({atEnd: false, loadingMorePosts: false});
+            this.loadPosts(nextProps.channel.id, nextProps.focusedPostId);
+            return;
+        }
+
+        // Channel changed so load posts for new channel
+        if (this.props.channel.id !== nextProps.channel.id && nextProps.focusedPostId == null) {
             this.page = 0;
             this.setState({atEnd: false, loadingMorePosts: false});
-
-            this.props.actions.getPosts(nextProps.channel.id).then((posts) => {
-                if (posts && posts.order.length < Constants.POST_CHUNK_SIZE) {
-                    this.setState({atEnd: true});
-                }
-            });
+            this.loadPosts(nextProps.channel.id);
         }
     }
 
@@ -94,16 +119,51 @@ export default class PostList extends React.PureComponent {
     }
 
     componentDidUpdate(prevProps) {
-        // Perform scroll update to prevent scroll jump
+        // Prevent scroll jump when loading new posts
         if (this.refs.postlist &&
                 this.preLoadListHeight &&
                 this.props.posts !== prevProps.posts) {
             this.refs.postlist.scrollTop = this.previousScrollTop + (this.refs.postlist.scrollHeight - this.preLoadListHeight);
             this.preLoadListHeight = 0;
+            return;
+        }
+
+        // Scroll to focused post on first load
+        const focusedPost = this.refs[this.props.focusedPostId];
+        if (focusedPost && !this.hasScrolledToFocusedPost && this.props.posts) {
+            const element = ReactDOM.findDOMNode(focusedPost);
+            const rect = element.getBoundingClientRect();
+            const listHeight = this.refs.postlist.clientHeight / 2;
+            this.refs.postlist.scrollTop = this.refs.postlist.scrollTop + (rect.top - listHeight);
         }
     }
 
+    async loadPosts(channelId, focusedPostId) {
+        let posts;
+        if (focusedPostId) {
+            const getPostThreadAsync = this.props.actions.getPostThread(focusedPostId);
+            const getPostsBeforeAsync = this.props.actions.getPostsBefore(channelId, focusedPostId, this.page);
+            const getPostsAfterAsync = this.props.actions.getPostsAfter(channelId, focusedPostId, 0, Constants.POST_CHUNK_SIZE / 2);
+
+            posts = await getPostsBeforeAsync;
+            await getPostsAfterAsync;
+            await getPostThreadAsync;
+
+            this.hasScrolledToFocusedPost = true;
+        } else {
+            posts = await this.props.actions.getPosts(channelId, this.page);
+        }
+
+        if (posts && posts.order.length < Constants.POST_CHUNK_SIZE) {
+            this.setState({atEnd: true});
+        }
+
+        this.setState({loadingMorePosts: false});
+    }
+
     handleScroll() {
+        this.hasScrolledToFocusedPost = true;
+
         // Cancel scroll update if user scrolls down after hitting top
         if (this.preLoadListHeight && this.refs.postlist.scrollTop > this.previousScrollTop) {
             this.preLoadListHeight = 0;
@@ -117,14 +177,7 @@ export default class PostList extends React.PureComponent {
 
             this.page += 1;
             this.preLoadListHeight = this.refs.postlist.scrollHeight;
-
-            this.props.actions.getPosts(this.props.channel.id, this.page, Constants.POST_CHUNK_SIZE).then((posts) => {
-                if (posts && posts.order.length < Constants.POST_CHUNK_SIZE) {
-                    this.setState({atEnd: true});
-                }
-
-                this.setState({loadingMorePosts: false});
-            });
+            this.loadPosts(this.props.channel.id, this.props.focusedPostId);
         }
     }
 
