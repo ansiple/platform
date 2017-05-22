@@ -29,6 +29,8 @@ export default class PostInfo extends React.PureComponent {
         useMilitaryTime: PropTypes.bool.isRequired,
         isFlagged: PropTypes.bool,
         canDelete: PropTypes.bool,
+        consecutivePostByUser: PropTypes.bool,
+        replyCount: PropTypes.number,
         lastPostCount: PropTypes.number,
         actions: PropTypes.shape({
             removePost: PropTypes.func.isRequired,
@@ -93,7 +95,7 @@ export default class PostInfo extends React.PureComponent {
         var dropdownContents = [];
         var dataComments = 0;
         if (type === 'Post') {
-            dataComments = post.replyCount;
+            dataComments = this.props.replyCount;
         }
 
         if (!isSystemMessage) {
@@ -457,7 +459,7 @@ export default class PostInfo extends React.PureComponent {
                 <li className='col'>
                     <PostTime
                         eventTime={post.create_at}
-                        sameUser={post.consecutivePostByUser}
+                        sameUser={this.props.consecutivePostByUser}
                         compactDisplay={this.props.compactDisplay}
                         useMilitaryTime={this.props.useMilitaryTime}
                         postId={post.id}

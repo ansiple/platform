@@ -2,7 +2,7 @@
 // See License.txt for license information.
 
 import UserProfile from 'components/user_profile.jsx';
-import PostInfo from './post_info';
+import PostInfo from 'components/post_view/post_info';
 import {FormattedMessage} from 'react-intl';
 
 import * as PostUtils from 'utils/post_utils.jsx';
@@ -19,11 +19,11 @@ export default class PostHeader extends React.PureComponent {
         handleCommentClick: PropTypes.func.isRequired,
         handleDropdownOpened: PropTypes.func.isRequired,
         compactDisplay: PropTypes.bool,
+        consecutivePostByUser: PropTypes.bool,
         displayNameType: PropTypes.string,
-        useMilitaryTime: PropTypes.bool.isRequired,
-        isFlagged: PropTypes.bool.isRequired,
         status: PropTypes.string,
         isBusy: PropTypes.bool,
+        replyCount: PropTypes.number,
         lastPostCount: PropTypes.number
     }
 
@@ -97,9 +97,9 @@ export default class PostHeader extends React.PureComponent {
                         handleCommentClick={this.props.handleCommentClick}
                         handleDropdownOpened={this.props.handleDropdownOpened}
                         compactDisplay={this.props.compactDisplay}
-                        useMilitaryTime={this.props.useMilitaryTime}
-                        isFlagged={this.props.isFlagged}
                         lastPostCount={this.props.lastPostCount}
+                        replyCount={this.props.replyCount}
+                        consecutivePostByUser={this.props.consecutivePostByUser}
                     />
                 </li>
             </ul>

@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import PostHeader from 'components/post_view/post_header.jsx';
+import PostHeader from 'components/post_view/post_header';
 import PostBody from 'components/post_view/post_body';
 import ProfilePicture from 'components/profile_picture.jsx';
 
@@ -39,11 +39,6 @@ export default class Post extends React.PureComponent {
         currentUser: PropTypes.object.isRequired,
 
         /**
-         * How to display the poster's name
-         */
-        displayNameType: PropTypes.string,
-
-        /**
          * Set to center the post
          */
         center: PropTypes.bool,
@@ -54,19 +49,29 @@ export default class Post extends React.PureComponent {
         compactDisplay: PropTypes.bool,
 
         /**
-         * Set to collapse image and video previews
+         * Set to render a preview of the parent post above this reply
          */
-        previewCollapsed: PropTypes.string,
+        isFirstReply: PropTypes.bool,
 
         /**
-         * Set to use 24 hour clock when displaying time
+         * Set to highlight the background of the post
          */
-        useMilitaryTime: PropTypes.bool.isRequired,
+        highlight: PropTypes.bool,
 
         /**
-         * Set to mark the post as flagged
+         * Set to render this post as if it was attached to the previous post
          */
-        isFlagged: PropTypes.bool,
+        consecutivePostByUser: PropTypes.bool,
+
+        /**
+         * Set to render this comment as a mention
+         */
+        isCommentMention: PropTypes.bool,
+
+        /**
+         * The number of replies in the same thread as this post
+         */
+        replyCount: PropTypes.number,
 
         /**
          * Set to mark the poster as in a webrtc call
@@ -123,12 +128,12 @@ export default class Post extends React.PureComponent {
             className += ' post--hide-controls';
         }
 
-        if (post.highlight) {
+        if (this.props.highlight) {
             className += ' post--highlight';
         }
 
         let rootUser = '';
-        if (post.isFirstReply) {
+        if (this.props.isFirstReply) {
             rootUser = 'other--root';
         } else {
             rootUser = 'same--root';
@@ -140,14 +145,14 @@ export default class Post extends React.PureComponent {
         }
 
         let sameUserClass = '';
-        if (post.consecutivePostByUser) {
+        if (this.props.consecutivePostByUser) {
             sameUserClass = 'same--user';
         }
 
         let postType = '';
         if (post.root_id && post.root_id.length > 0) {
             postType = 'post--comment';
-        } else if (post.replyCount > 0) {
+        } else if (this.props.replyCount > 0) {
             postType = 'post--root';
             sameUserClass = '';
             rootUser = '';
@@ -267,19 +272,18 @@ export default class Post extends React.PureComponent {
                                 user={this.props.user}
                                 currentUser={this.props.currentUser}
                                 compactDisplay={this.props.compactDisplay}
-                                displayNameType={this.props.displayNameType}
-                                useMilitaryTime={this.props.useMilitaryTime}
-                                isFlagged={this.props.isFlagged}
                                 status={this.props.status}
                                 isBusy={this.props.isBusy}
                                 lastPostCount={this.props.lastPostCount}
+                                replyCount={this.props.replyCount}
+                                consecutivePostByUser={this.props.consecutivePostByUser}
                             />
                             <PostBody
                                 post={post}
                                 handleCommentClick={this.handleCommentClick}
                                 compactDisplay={this.props.compactDisplay}
-                                previewCollapsed={this.props.previewCollapsed}
                                 lastPostCount={this.props.lastPostCount}
+                                isCommentMention={this.props.isCommentMention}
                             />
                         </div>
                     </div>

@@ -6,6 +6,10 @@ import {bindActionCreators} from 'redux';
 import {removePost} from 'mattermost-redux/actions/posts';
 
 import {getUser} from 'mattermost-redux/selectors/entities/users';
+import {get} from 'mattermost-redux/selectors/entities/preferences';
+import {getPost} from 'mattermost-redux/selectors/entities/posts';
+
+import {Preferences} from 'mattermost-redux/constants';
 
 import PostBody from './post_body.jsx';
 
@@ -17,7 +21,9 @@ function mapStateToProps(state, ownProps) {
 
     return {
         ...ownProps,
-        parentPostUser
+        parentPostUser,
+        previewsCollapsed: get(state, Preferences.CATEGORY_DISPLAY_SETTINGS, Preferences.COLLAPSE_DISPLAY, 'false'),
+        parentPost: getPost(state, ownProps.post.root_id)
     };
 }
 

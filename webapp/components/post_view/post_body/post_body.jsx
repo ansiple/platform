@@ -24,6 +24,11 @@ export default class PostBody extends React.PureComponent {
         post: PropTypes.object.isRequired,
 
         /**
+         * The parent post of the thread this post is in
+         */
+        parentPost: PropTypes.object,
+
+        /**
          * The poster of the parent post, if exists
          */
         parentPostUser: PropTypes.object,
@@ -37,6 +42,11 @@ export default class PostBody extends React.PureComponent {
          * Set to render post body compactly
          */
         compactDisplay: PropTypes.bool,
+
+        /**
+         * Set to highlight comment as a mention
+         */
+        isCommentMention: PropTypes.bool,
 
         /**
          * Set to collapse image and video previews
@@ -69,7 +79,7 @@ export default class PostBody extends React.PureComponent {
 
     render() {
         const post = this.props.post;
-        const parentPost = post.commentedOnPost;
+        const parentPost = this.props.parentPost;
 
         let comment = '';
         let postClass = '';
@@ -177,7 +187,7 @@ export default class PostBody extends React.PureComponent {
         }
 
         let mentionHighlightClass = '';
-        if (post.isCommentMention) {
+        if (this.props.isCommentMention) {
             mentionHighlightClass = 'mention-comment';
         }
 
