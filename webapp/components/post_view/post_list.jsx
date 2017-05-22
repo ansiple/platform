@@ -80,9 +80,8 @@ export default class PostList extends React.PureComponent {
         this.loadPosts = this.loadPosts.bind(this);
 
         this.page = 0;
-        this.preLoadListHeight = 0;
         this.previousScrollTop = 0;
-        this.hasScrolledToFocusedPost = false;
+        this.previousScrollHeight = 0;
 
         this.state = {
             loadingMorePosts: false,
@@ -115,19 +114,11 @@ export default class PostList extends React.PureComponent {
     componentWillUpdate() {
         if (this.refs.postlist) {
             this.previousScrollTop = this.refs.postlist.scrollTop;
+            this.previousScrollHeight = this.refs.postlist.scrollHeight;
         }
     }
 
     componentDidUpdate(prevProps) {
-        // Prevent scroll jump when loading new posts
-        if (this.refs.postlist &&
-                this.preLoadListHeight &&
-                this.props.posts !== prevProps.posts) {
-            this.refs.postlist.scrollTop = this.previousScrollTop + (this.refs.postlist.scrollHeight - this.preLoadListHeight);
-            this.preLoadListHeight = 0;
-            return;
-        }
-
         // Scroll to focused post on first load
         const focusedPost = this.refs[this.props.focusedPostId];
         if (focusedPost && !this.hasScrolledToFocusedPost && this.props.posts) {
@@ -135,6 +126,17 @@ export default class PostList extends React.PureComponent {
             const rect = element.getBoundingClientRect();
             const listHeight = this.refs.postlist.clientHeight / 2;
             this.refs.postlist.scrollTop = this.refs.postlist.scrollTop + (rect.top - listHeight);
+            return;
+        }
+
+        // Prevent scroll jump when loading new posts
+        const posts = this.props.posts;
+        const prevPosts = prevProps.posts;
+        if (this.refs.postlist &&
+                posts &&
+                prevPosts &&
+                posts[posts.length - 1] !== prevPosts[prevPosts.length - 1]) {
+            this.refs.postlist.scrollTop = this.previousScrollTop + (this.refs.postlist.scrollHeight - this.previousScrollHeight);
         }
     }
 
@@ -164,11 +166,6 @@ export default class PostList extends React.PureComponent {
     handleScroll() {
         this.hasScrolledToFocusedPost = true;
 
-        // Cancel scroll update if user scrolls down after hitting top
-        if (this.preLoadListHeight && this.refs.postlist.scrollTop > this.previousScrollTop) {
-            this.preLoadListHeight = 0;
-        }
-
         // Load more posts if user hits end of list
         if (this.refs.postlist.scrollTop === 0 &&
                 !this.state.loadingMorePosts &&
@@ -176,7 +173,6 @@ export default class PostList extends React.PureComponent {
             this.setState({loadingMorePosts: true});
 
             this.page += 1;
-            this.preLoadListHeight = this.refs.postlist.scrollHeight;
             this.loadPosts(this.props.channel.id, this.props.focusedPostId);
         }
     }
