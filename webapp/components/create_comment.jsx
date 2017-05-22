@@ -280,7 +280,7 @@ export default class CreateComment extends React.Component {
             });
         }
 
-        PostActions.queuePost(post, false, null,
+        PostActions.createPost(post, null,
             (err) => {
                 if (err.id === 'api.post.create_post.root_id.app_error') {
                     this.showPostDeletedModal();

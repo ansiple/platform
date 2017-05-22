@@ -25,6 +25,7 @@ import store from 'stores/redux_store.jsx';
 const dispatch = store.dispatch;
 const getState = store.getState;
 import {getProfilesByIds} from 'mattermost-redux/actions/users';
+import {createPost as createPostRedux, getPostThread} from 'mattermost-redux/actions/posts';
 import {getMyChannelMember} from 'mattermost-redux/actions/channels';
 import {PostTypes} from 'mattermost-redux/action_types';
 
@@ -56,56 +57,25 @@ export function handleNewPost(post, msg) {
 
 function completePostReceive(post, websocketMessageProps) {
     if (post.root_id && PostStore.getPost(post.channel_id, post.root_id) == null) {
-        Client.getPost(
-            post.channel_id,
-            post.root_id,
+        getPostThread(post.root_id)(dispatch, getState).then(
             (data) => {
-                AppDispatcher.handleServerAction({
-                    type: ActionTypes.RECEIVED_POSTS,
-                    id: post.channel_id,
-                    numRequested: 0,
-                    post_list: data
-                });
-
-                // Required to update order
-                AppDispatcher.handleServerAction({
-                    type: ActionTypes.RECEIVED_POST,
-                    post,
-                    websocketMessageProps
-                });
-
-                dispatch({
-                    type: PostTypes.RECEIVED_POSTS,
-                    data,
-                    channelId: post.channel_id
-                });
-
-                dispatch({
-                    type: PostTypes.RECEIVED_POST,
-                    data: post
-                });
-
                 sendDesktopNotification(post, websocketMessageProps);
-
                 loadProfilesForPosts(data.posts);
-            },
-            (err) => {
-                AsyncClient.dispatchError(err, 'getPost');
             }
         );
 
         return;
     }
 
-    AppDispatcher.handleServerAction({
-        type: ActionTypes.RECEIVED_POST,
-        post,
-        websocketMessageProps
-    });
-
     dispatch({
-        type: PostTypes.RECEIVED_POST,
-        data: post
+        type: PostTypes.RECEIVED_POSTS,
+        data: {
+            order: [],
+            posts: {
+                [post.id]: post
+            }
+        },
+        channelId: post.channel_id
     });
 
     sendDesktopNotification(post, websocketMessageProps);
@@ -358,92 +328,8 @@ export function removeReaction(channelId, postId, emojiName) {
     AsyncClient.deleteReaction(channelId, reaction);
 }
 
-const postQueue = [];
-
-export function queuePost(post, doLoadPost, success, error) {
-    postQueue.push(
-        createPost.bind(
-            this,
-            post,
-            doLoadPost,
-            (data) => {
-                if (success) {
-                    success(data);
-                }
-
-                postSendComplete();
-            },
-            (err) => {
-                if (error) {
-                    error(err);
-                }
-
-                postSendComplete();
-            }
-        )
-    );
-
-    sendFirstPostInQueue();
-}
-
-// Remove the completed post from the queue and send the next one
-function postSendComplete() {
-    postQueue.shift();
-    sendNextPostInQueue();
-}
-
-// Start sending posts if a new queue has started
-function sendFirstPostInQueue() {
-    if (postQueue.length === 1) {
-        sendNextPostInQueue();
-    }
-}
-
-// Send the next post in the queue if there is one
-function sendNextPostInQueue() {
-    const nextPostAction = postQueue[0];
-    if (nextPostAction) {
-        nextPostAction();
-    }
-}
-
-export function createPost(post, doLoadPost, success, error) {
-    Client.createPost(post,
-        (data) => {
-            if (doLoadPost) {
-                loadPosts(post.channel_id);
-            } else {
-                PostStore.removePendingPost(post.pending_post_id);
-            }
-
-            AppDispatcher.handleServerAction({
-                type: ActionTypes.RECEIVED_POST,
-                post: data
-            });
-
-            dispatch({
-                type: PostTypes.RECEIVED_POST,
-                data
-            });
-
-            if (success) {
-                success(data);
-            }
-        },
-
-        (err) => {
-            if (err.id === 'api.post.create_post.root_id.app_error') {
-                PostStore.removePendingPost(post.pending_post_id);
-            } else {
-                post.state = Constants.POST_FAILED;
-                PostStore.updatePendingPost(post);
-            }
-
-            if (error) {
-                error(err);
-            }
-        }
-    );
+export function createPost(post) {
+    createPostRedux(post)(dispatch, getState);
 }
 
 export function updatePost(post, success, isPost) {
