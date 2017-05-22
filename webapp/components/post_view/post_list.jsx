@@ -106,6 +106,7 @@ export default class PostList extends React.PureComponent {
         // Channel changed so load posts for new channel
         if (this.props.channel.id !== nextProps.channel.id && nextProps.focusedPostId == null) {
             this.page = 0;
+            this.hasScrolledToNewMessageSeparator = false;
             this.setState({atEnd: false, loadingMorePosts: false});
             this.loadPosts(nextProps.channel.id);
         }
@@ -126,6 +127,14 @@ export default class PostList extends React.PureComponent {
             const rect = element.getBoundingClientRect();
             const listHeight = this.refs.postlist.clientHeight / 2;
             this.refs.postlist.scrollTop = this.refs.postlist.scrollTop + (rect.top - listHeight);
+            return;
+        }
+
+        // Scroll to new message indicator on first load
+        const messageSeparator = this.refs.newMessageSeparator;
+        if (messageSeparator && !this.hasScrolledToNewMessageSeparator) {
+            const element = ReactDOM.findDOMNode(messageSeparator);
+            element.scrollIntoView();
             return;
         }
 
@@ -154,6 +163,7 @@ export default class PostList extends React.PureComponent {
             this.hasScrolledToFocusedPost = true;
         } else {
             posts = await this.props.actions.getPosts(channelId, this.page);
+            this.hasScrolledToNewMessageSeparator = true;
         }
 
         if (posts && posts.order.length < Constants.POST_CHUNK_SIZE) {
