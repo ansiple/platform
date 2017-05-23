@@ -1,14 +1,13 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import CreateComment from './create_comment.jsx';
-import RhsHeaderPost from './rhs_header_post.jsx';
-import RootPost from './rhs_root_post.jsx';
-import Comment from './rhs_comment.jsx';
-import FloatingTimestamp from './post_view/floating_timestamp.jsx';
-import DateSeparator from './post_view/date_separator.jsx';
+import CreateComment from 'components/create_comment.jsx';
+import RhsHeaderPost from 'components/rhs_header_post.jsx';
+import RootPost from 'components/rhs_root_post.jsx';
+import Comment from 'components/rhs_comment.jsx';
+import FloatingTimestamp from 'components/post_view/floating_timestamp.jsx';
+import DateSeparator from 'components/post_view/date_separator.jsx';
 
-import PostStore from 'stores/post_store.jsx';
 import UserStore from 'stores/user_store.jsx';
 import PreferenceStore from 'stores/preference_store.jsx';
 import WebrtcStore from 'stores/webrtc_store.jsx';
@@ -49,12 +48,30 @@ export function renderThumbVertical(props) {
 }
 
 export default class RhsThread extends React.Component {
+    static propTypes = {
+        posts: PropTypes.arrayOf(PropTypes.object).isRequired,
+        selected: PropTypes.object.isRequired,
+        fromSearch: PropTypes.string,
+        fromFlaggedPosts: PropTypes.bool,
+        fromPinnedPosts: PropTypes.bool,
+        isWebrtc: PropTypes.bool,
+        isMentionSearch: PropTypes.bool,
+        currentUser: PropTypes.object.isRequired,
+        useMilitaryTime: PropTypes.bool.isRequired,
+        toggleSize: PropTypes.func,
+        shrink: PropTypes.func
+    }
+
+    static defaultProps = {
+        fromSearch: '',
+        isMentionSearch: false
+    }
+
     constructor(props) {
         super(props);
 
         this.mounted = false;
 
-        this.onPostChange = this.onPostChange.bind(this);
         this.onUserChange = this.onUserChange.bind(this);
         this.onSelectedChange = this.onSelectedChange.bind(this);
         this.forceUpdateInfo = this.forceUpdateInfo.bind(this);
@@ -86,9 +103,6 @@ export default class RhsThread extends React.Component {
     }
 
     componentDidMount() {
-        PostStore.addSelectedPostChangeListener(this.onSelectedChange);
-        PostStore.addSelectedPostChangeListener(this.onPostChange);
-        PostStore.addChangeListener(this.onPostChange);
         PreferenceStore.addChangeListener(this.onPreferenceChange);
         UserStore.addChangeListener(this.onUserChange);
         UserStore.addStatusesChangeListener(this.onStatusChange);
@@ -101,9 +115,6 @@ export default class RhsThread extends React.Component {
     }
 
     componentWillUnmount() {
-        PostStore.addSelectedPostChangeListener(this.onSelectedChange);
-        PostStore.removeSelectedPostChangeListener(this.onPostChange);
-        PostStore.removeChangeListener(this.onPostChange);
         PreferenceStore.removeChangeListener(this.onPreferenceChange);
         UserStore.removeChangeListener(this.onUserChange);
         UserStore.removeStatusesChangeListener(this.onStatusChange);
@@ -116,7 +127,7 @@ export default class RhsThread extends React.Component {
 
     componentDidUpdate(prevProps, prevState) {
         const prevPostsArray = prevState.postsArray || [];
-        const curPostsArray = this.state.postsArray || [];
+        const curPostsArray = this.props.posts || [];
 
         if (prevPostsArray.length >= curPostsArray.length) {
             return;
@@ -134,11 +145,11 @@ export default class RhsThread extends React.Component {
             return true;
         }
 
-        if (!Utils.areObjectsEqual(nextState.postsArray, this.state.postsArray)) {
+        if (!Utils.areObjectsEqual(nextState.postsArray, this.props.posts)) {
             return true;
         }
 
-        if (!Utils.areObjectsEqual(nextState.selected, this.state.selected)) {
+        if (!Utils.areObjectsEqual(nextState.selected, this.props.selected)) {
             return true;
         }
 
@@ -198,10 +209,16 @@ export default class RhsThread extends React.Component {
         });
     }
 
-    onSelectedChange() {
-        this.setState({
-            openTime: (new Date()).getTime()
-        });
+    componentWillReceiveProps(nextProps) {
+        if (!this.props.selected || !nextProps.selected) {
+            return;
+        }
+
+        if (this.props.selected.id !== nextProps.selected.id) {
+            this.setState({
+                openTime: (new Date()).getTime()
+            });
+        }
     }
 
     onPreferenceChange(category) {
@@ -218,12 +235,6 @@ export default class RhsThread extends React.Component {
         this.forceUpdateInfo();
     }
 
-    onPostChange() {
-        if (this.mounted) {
-            this.setState(this.getPosts(this.state.openTime));
-        }
-    }
-
     onStatusChange() {
         this.setState({statuses: Object.assign({}, UserStore.getStatuses())});
     }
@@ -232,53 +243,19 @@ export default class RhsThread extends React.Component {
         this.setState({isBusy});
     }
 
-    getPosts(openTime) {
-        const selected = PostStore.getSelectedPost();
-        const posts = PostStore.getSelectedPostThread();
-
+    filterPosts(posts, openTime) {
         const postsArray = [];
 
-        for (const id in posts) {
-            if (posts.hasOwnProperty(id)) {
-                const cpost = posts[id];
-
-                // Do not show empherals created before sidebar has been opened
-                if (cpost.type === 'system_ephemeral' && cpost.create_at < openTime) {
-                    continue;
-                }
-
-                if (cpost.root_id === selected.id) {
-                    postsArray.push(cpost);
-                }
-            }
-        }
-
-        // sort failed posts to bottom, followed by pending, and then regular posts
-        postsArray.sort((a, b) => {
-            if ((a.state === Constants.POST_LOADING || a.state === Constants.POST_FAILED) && (b.state !== Constants.POST_LOADING && b.state !== Constants.POST_FAILED)) {
-                return 1;
-            }
-            if ((a.state !== Constants.POST_LOADING && a.state !== Constants.POST_FAILED) && (b.state === Constants.POST_LOADING || b.state === Constants.POST_FAILED)) {
-                return -1;
+        posts.forEach((cpost) => {
+            // Do not show empherals created before sidebar has been opened
+            if (cpost.type === 'system_ephemeral' && cpost.create_at < openTime) {
+                return;
             }
 
-            if (a.state === Constants.POST_LOADING && b.state === Constants.POST_FAILED) {
-                return -1;
-            }
-            if (a.state === Constants.POST_FAILED && b.state === Constants.POST_LOADING) {
-                return 1;
-            }
-
-            if (a.create_at < b.create_at) {
-                return -1;
-            }
-            if (a.create_at > b.create_at) {
-                return 1;
-            }
-            return 0;
+            postsArray.push(cpost);
         });
 
-        return {postsArray, selected};
+        return postsArray;
     }
 
     onUserChange() {
@@ -298,7 +275,7 @@ export default class RhsThread extends React.Component {
             return;
         }
 
-        if (this.state.postsArray) {
+        if (this.props.posts) {
             const childNodes = this.refs.rhspostlist.childNodes;
             const viewPort = this.refs.rhspostlist.getBoundingClientRect();
             let topRhsPostCreateAt = 0;
@@ -307,7 +284,7 @@ export default class RhsThread extends React.Component {
             // determine the top rhs comment assuming that childNodes and postsArray are of same length
             for (let i = 0; i < childNodes.length; i++) {
                 if ((childNodes[i].offsetTop + viewPort.top) - offset > 0) {
-                    topRhsPostCreateAt = this.state.postsArray[i].create_at;
+                    topRhsPostCreateAt = this.props.posts[i].create_at;
                     break;
                 }
             }
@@ -339,14 +316,14 @@ export default class RhsThread extends React.Component {
     }
 
     render() {
-        if (this.state.postsArray == null || this.state.selected == null) {
+        if (this.props.posts == null || this.props.selected == null) {
             return (
                 <div/>
             );
         }
 
-        const postsArray = this.state.postsArray;
-        const selected = this.state.selected;
+        const postsArray = this.filterPosts(this.props.posts, this.state.openTime);
+        const selected = this.props.selected;
         const profiles = this.state.profiles || {};
 
         let profile;
@@ -484,20 +461,3 @@ export default class RhsThread extends React.Component {
         );
     }
 }
-
-RhsThread.defaultProps = {
-    fromSearch: '',
-    isMentionSearch: false
-};
-
-RhsThread.propTypes = {
-    fromSearch: PropTypes.string,
-    fromFlaggedPosts: PropTypes.bool,
-    fromPinnedPosts: PropTypes.bool,
-    isWebrtc: PropTypes.bool,
-    isMentionSearch: PropTypes.bool,
-    currentUser: PropTypes.object.isRequired,
-    useMilitaryTime: PropTypes.bool.isRequired,
-    toggleSize: PropTypes.func,
-    shrink: PropTypes.func
-};

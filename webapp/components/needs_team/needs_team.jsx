@@ -24,7 +24,7 @@ const TutorialSteps = Constants.TutorialSteps;
 const Preferences = Constants.Preferences;
 
 import ErrorBar from 'components/error_bar.jsx';
-import SidebarRight from 'components/sidebar_right.jsx';
+import SidebarRight from 'components/sidebar_right';
 import SidebarRightMenu from 'components/sidebar_right_menu.jsx';
 import Navbar from 'components/navbar.jsx';
 import WebrtcSidebar from 'components/webrtc/components/webrtc_sidebar.jsx';

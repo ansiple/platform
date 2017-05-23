@@ -147,8 +147,10 @@ export function emitCloseRightHandSide() {
     SearchStore.storeSearchResults(null, false, false);
     SearchStore.emitSearchChange();
 
-    PostStore.storeSelectedPostId(null);
-    PostStore.emitSelectedPostChange(false, false);
+    dispatch({
+        type: ActionTypes.RECEIVED_POST_SELECTED,
+        postId: null
+    });
 }
 
 export function emitPostFocusRightHandSideFromSearch(post, isMentionSearch) {

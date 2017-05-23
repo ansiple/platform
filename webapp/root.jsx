@@ -115,6 +115,7 @@ function preRenderSetup(callwhendone) {
 }
 
 function renderRootComponent() {
+    console.log('top render');
     ReactDOM.render((
         <Provider store={store}>
             <Router

@@ -18,6 +18,10 @@ const POSTS_VIEW_JUMP_EVENT = 'post_list_jump';
 const SELECTED_POST_CHANGE_EVENT = 'selected_post_change';
 const POST_PINNED_CHANGE_EVENT = 'post_pinned_change';
 
+import store from 'stores/redux_store.jsx';
+const dispatch = store.dispatch;
+const getState = store.getState;
+
 class PostStoreClass extends EventEmitter {
     constructor() {
         super();
@@ -454,73 +458,6 @@ class PostStoreClass extends EventEmitter {
         this.emitChange();
     }
 
-    storeSelectedPostId(postId) {
-        this.selectedPostId = postId;
-    }
-
-    getSelectedPostId() {
-        return this.selectedPostId;
-    }
-
-    getSelectedPost() {
-        if (this.selectedPostId == null) {
-            return null;
-        }
-
-        for (const k in this.postsInfo) {
-            if (this.postsInfo[k].postList.posts.hasOwnProperty(this.selectedPostId)) {
-                return this.postsInfo[k].postList.posts[this.selectedPostId];
-            }
-        }
-
-        return null;
-    }
-
-    getSelectedPostThread() {
-        if (this.selectedPostId == null) {
-            return null;
-        }
-
-        const posts = {};
-        let pendingPosts;
-        for (const k in this.postsInfo) {
-            if (this.postsInfo[k].postList && this.postsInfo[k].postList.posts.hasOwnProperty(this.selectedPostId)) {
-                Object.assign(posts, this.postsInfo[k].postList.posts);
-                if (this.postsInfo[k].pendingPosts != null) {
-                    pendingPosts = this.postsInfo[k].pendingPosts.posts;
-                }
-            }
-        }
-
-        const threadPosts = {};
-        const rootId = this.selectedPostId;
-        for (const k in posts) {
-            if (posts[k].root_id === rootId) {
-                threadPosts[k] = JSON.parse(JSON.stringify(posts[k]));
-            }
-        }
-
-        for (const k in pendingPosts) {
-            if (pendingPosts[k].root_id === rootId) {
-                threadPosts[k] = JSON.parse(JSON.stringify(pendingPosts[k]));
-            }
-        }
-
-        return threadPosts;
-    }
-
-    emitSelectedPostChange(fromSearch, fromFlaggedPosts, fromPinnedPosts) {
-        this.emit(SELECTED_POST_CHANGE_EVENT, fromSearch, fromFlaggedPosts, fromPinnedPosts);
-    }
-
-    addSelectedPostChangeListener(callback) {
-        this.on(SELECTED_POST_CHANGE_EVENT, callback);
-    }
-
-    removeSelectedPostChangeListener(callback) {
-        this.removeListener(SELECTED_POST_CHANGE_EVENT, callback);
-    }
-
     emitPostPinnedChange() {
         this.emit(POST_PINNED_CHANGE_EVENT);
     }
@@ -716,8 +653,7 @@ PostStore.dispatchToken = AppDispatcher.register((payload) => {
         PostStore.emitChange();
         break;
     case ActionTypes.RECEIVED_POST_SELECTED:
-        PostStore.storeSelectedPostId(action.postId);
-        PostStore.emitSelectedPostChange(action.from_search, action.from_flagged_posts, action.from_pinned_posts);
+        dispatch(action);
         break;
     case ActionTypes.RECEIVED_POST_PINNED:
     case ActionTypes.RECEIVED_POST_UNPINNED:
