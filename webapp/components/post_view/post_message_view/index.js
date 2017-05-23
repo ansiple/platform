@@ -5,7 +5,7 @@ import {connect} from 'react-redux';
 import {getCustomEmojisAsMap} from 'mattermost-redux/selectors/entities/emojis';
 import {getBool} from 'mattermost-redux/selectors/entities/preferences';
 import {getCurrentUserMentionKeys, getUsersByUsername} from 'mattermost-redux/selectors/entities/users';
-import {getChannelsNameMapInCurrentTeam} from 'mattermost-redux/selectors/entities/channels';
+
 import {getCurrentTeam} from 'mattermost-redux/selectors/entities/teams';
 
 import {Preferences} from 'mattermost-redux/constants';
@@ -20,7 +20,6 @@ function mapStateToProps(state, ownProps) {
         enableFormatting: getBool(state, Preferences.CATEGORY_ADVANCED_SETTINGS, 'formatting', true),
         mentionKeys: getCurrentUserMentionKeys(state),
         usernameMap: getUsersByUsername(state),
-        channelNamesMap: getChannelsNameMapInCurrentTeam(state),
         team: getCurrentTeam(state),
         siteUrl: getSiteURL()
     };

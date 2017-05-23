@@ -3,18 +3,22 @@
 
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
-import {getReactionsForPost} from 'mattermost-redux/selectors/entities/posts';
+import {makeGetReactionsForPost} from 'mattermost-redux/selectors/entities/posts';
 import {getCustomEmojisAsMap} from 'mattermost-redux/selectors/entities/emojis';
 
 import * as Actions from 'mattermost-redux/actions/posts';
 
 import ReactionList from './reaction_list.jsx';
 
-function mapStateToProps(state, ownProps) {
-    return {
-        ...ownProps,
-        reactions: getReactionsForPost(state, ownProps.post.id),
-        emojis: getCustomEmojisAsMap(state)
+function makeMapStateToProps() {
+    const getReactionsForPost = makeGetReactionsForPost();
+
+    return function mapStateToProps(state, ownProps) {
+        return {
+            ...ownProps,
+            reactions: getReactionsForPost(state, ownProps.post.id),
+            emojis: getCustomEmojisAsMap(state)
+        };
     };
 }
 
@@ -26,4 +30,4 @@ function mapDispatchToProps(dispatch) {
     };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(ReactionList);
+export default connect(makeMapStateToProps, mapDispatchToProps)(ReactionList);

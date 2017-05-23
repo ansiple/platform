@@ -10,6 +10,9 @@ import * as PostUtils from 'utils/post_utils.jsx';
 import * as TextFormatting from 'utils/text_formatting.jsx';
 import * as Utils from 'utils/utils.jsx';
 
+import {getChannelsNameMapInCurrentTeam} from 'mattermost-redux/selectors/entities/channels';
+import store from 'stores/redux_store.jsx';
+
 import {renderSystemMessage} from './system_message_helpers.jsx';
 
 export default class PostMessageView extends React.PureComponent {
@@ -20,7 +23,6 @@ export default class PostMessageView extends React.PureComponent {
         enableFormatting: PropTypes.bool.isRequired,
         mentionKeys: PropTypes.arrayOf(PropTypes.string).isRequired,
         usernameMap: PropTypes.object.isRequired,
-        channelNamesMap: PropTypes.object.isRequired,
         team: PropTypes.object.isRequired,
         siteUrl: PropTypes.string.isRequired,
         lastPostCount: PropTypes.number
@@ -70,7 +72,7 @@ export default class PostMessageView extends React.PureComponent {
             siteURL: this.props.siteUrl,
             mentionKeys: this.props.mentionKeys,
             usernameMap: this.props.usernameMap,
-            channelNamesMap: this.props.channelNamesMap,
+            channelNamesMap: getChannelsNameMapInCurrentTeam(store.getState()),
             team: this.props.team
         });
 
